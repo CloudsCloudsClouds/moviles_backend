@@ -164,7 +164,43 @@ async def get_label():
 
 @app.post("/eval")
 async def eval(image: UploadFile = File(...)):
-    return True
+    if model is None:
+        print("Model not loaded, create the model first.")
+        return {"prediction": False, "message": "Model not loaded."}
+
+    try:
+        global current_label
+        # Pro copy pasting
+        # Read the image bytes
+        contents = await image.read()
+        pil_image = Image.open(io.BytesIO(contents)).convert("RGB")
+
+        # Preprocess the image
+        input_tensor = preprocess(pil_image)
+        input_batch = input_tensor.unsqueeze(0)
+
+        # Move the input to the same device as the model
+        input_batch = input_batch.to(device)
+
+        with torch.no_grad():
+            output = model(input_batch)
+
+        # Get the predicted class
+        probabilities = torch.nn.functional.softmax(output[0], dim=0)
+        predicted_idx = torch.argmax(probabilities).item()
+        predicted_label = class_names[int(predicted_idx)]
+
+        is_correct = predicted_label == current_label
+
+        print(
+            f"Received label: {current_label}, Predicted label: {predicted_label}, Correct: {is_correct}"
+        )
+
+        return {"prediction": is_correct, "predicted_label": predicted_label}
+
+    except Exception as e:
+        print(f"Error during prediction in /test endpoint: {e}")
+        return {"prediction": False, "message": f"Error processing image: {e}"}
 
 
 if __name__ == "__main__":
