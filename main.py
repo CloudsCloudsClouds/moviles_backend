@@ -107,7 +107,7 @@ def preprocess(pil_image) -> torch.Tensor:
 async def update_label():
     global current_label
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(300)
         current_label = random.choice(labels)
 
 
